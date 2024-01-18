@@ -6,6 +6,7 @@ class SQLHelper {
       CREATE TABLE data(
         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 
+        saldo TEXT,
         desc_conta TEXT,
         valor TEXT,
         createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -18,6 +19,14 @@ class SQLHelper {
         onCreate: (sql.Database database, int version) async {
       await createTables(database);
     });
+  }
+
+  static Future<void> createDataSaldo(String saldo) async {
+    final db = await SQLHelper.db();
+    final data = {"saldo": saldo};
+
+    await db.insert('data', data,
+        conflictAlgorithm: sql.ConflictAlgorithm.replace);
   }
 
   static Future<void> createData(String desc_conta, String valor) async {
