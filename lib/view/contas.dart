@@ -2,9 +2,9 @@
 
 import 'package:app_dev_agil/view/add_conta.dart';
 import 'package:flutter/material.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
+//import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import '../model/db_helper.dart';
-import 'add_saldo_modal.dart';
+//import 'add_saldo_modal.dart';
 
 class Contas extends StatefulWidget {
   const Contas({super.key});
@@ -80,15 +80,51 @@ class _ContasState extends State<Contas> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               FloatingActionButton(
-                onPressed: () {},
+                onPressed: () {
+                  showModalBottomSheet(
+                      context: context,
+                      builder: (_) {
+                        return Container(
+                          padding: const EdgeInsets.all(30),
+                          height: MediaQuery.sizeOf(context).height / 2.4,
+                          child: Column(children: [
+                            TextFormField(
+                              decoration: const InputDecoration(
+                                  labelText: "Remover Saldo",
+                                  floatingLabelAlignment:
+                                      FloatingLabelAlignment.center,
+                                  border: OutlineInputBorder()),
+                              keyboardType: TextInputType.number,
+                              textAlign: TextAlign.center,
+                            ),
+                            ElevatedButton(
+                                onPressed: () {}, child: const Text("remover"))
+                          ]),
+                        );
+                      });
+                },
                 child: const Icon(Icons.remove),
               ),
               Expanded(child: Container()),
               FloatingActionButton(
                 onPressed: () {
-                  /*return showBarModalBottomSheet(
+                  showModalBottomSheet(
                       context: context,
-                      builder: (context) => AdicionarSaldoModal());*/
+                      builder: (_) {
+                        return Container(
+                          padding: const EdgeInsets.all(30),
+                          height: MediaQuery.sizeOf(context).height / 2.4,
+                          child: TextFormField(
+                            decoration: const InputDecoration(
+                                labelText: "Adicionar Saldo",
+                                floatingLabelAlignment:
+                                    FloatingLabelAlignment.center,
+                                border: OutlineInputBorder()),
+                            keyboardType: TextInputType.number,
+                            textAlign: TextAlign.center,
+                          ),
+                        );
+                      });
                 },
                 child: const Icon(Icons.add),
               )
