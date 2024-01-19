@@ -24,7 +24,8 @@ class _AddConta extends State<AddConta> {
   }
 
   Future<void> _addData() async {
-    await SQLHelper.createData(_desc_conta.text, _valor.text);
+    await SQLHelper.adicionarConta(
+        _desc_conta.text, _valor.text, DateTime.now().toString(), 0.0);
     _refreshData();
 
     // ignore: use_build_context_synchronously

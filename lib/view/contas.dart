@@ -15,29 +15,23 @@ class Contas extends StatefulWidget {
 
 class _ContasState extends State<Contas> {
   List<Map<String, dynamic>> _allData = [];
+  List<Map<String, dynamic>> _user = [];
   bool _isLoading = true;
   bool atualizou = false;
 
-  double _total() {
-    double valor_total = 0.0;
-    for (var i in _allData) {
-      valor_total = valor_total + double.parse(i['valor'].toString());
-    }
-    print(valor_total);
-    return valor_total;
-  }
-
-  double _resultado = 0.0;
+  var _resultado;
   //Pega todos os dados do banco
   void _refreshData() async {
     atualizou = false;
     final data = await SQLHelper.getAllData();
+    final user = await SQLHelper.getUser();
     setState(() {
       _allData = data;
+      _user = user;
+      _resultado = _user[0]['saldo'];
       _isLoading = false;
     });
     if (atualizou == false) {
-      _resultado = _total();
       atualizou = true;
     }
   }
@@ -46,6 +40,41 @@ class _ContasState extends State<Contas> {
   void initState() {
     super.initState();
     _refreshData();
+  }
+
+  final TextEditingController _desc_conta = TextEditingController();
+  final TextEditingController _valor_conta = TextEditingController();
+  final TextEditingController _saldo = TextEditingController();
+
+  void _adicionarConta() async {
+    double saldoAtual = 0.0;
+    saldoAtual = double.parse(_user[0]['saldo'].toString()) -
+        double.parse(_valor_conta.text);
+
+    await SQLHelper.adicionarConta(_desc_conta.text, _valor_conta.text,
+        DateTime.now().toString(), saldoAtual);
+    _refreshData();
+  }
+
+  void _adicionarSaldo() async {
+    print('tam ' + _allData.length.toString());
+
+    if (_allData.isEmpty) {
+      await SQLHelper.criarSaldo(_valor_conta.text);
+      await SQLHelper.adicionarSaldo(
+          _desc_conta.text, _valor_conta.text, _valor_conta.text);
+      _refreshData();
+      print("criou o db");
+      return;
+    } else {
+      double saldoAtual = 0.0;
+      saldoAtual = double.parse(_allData[0]['saldo'].toString()) +
+          double.parse(_valor_conta.text);
+      await SQLHelper.adicionarSaldo(
+          _desc_conta.text, _valor_conta.text, saldoAtual.toString());
+      _refreshData();
+      return;
+    }
   }
 
   void _deleteData(int id) async {
@@ -61,19 +90,14 @@ class _ContasState extends State<Contas> {
 
     return Scaffold(
         appBar: AppBar(
-          backgroundColor: const Color.fromARGB(255, 250, 250, 92),
-          toolbarHeight: 100,
-          centerTitle: true,
-          title: Text('Total: $_resultado'),
-          actions: <Widget>[
-            IconButton(
-                onPressed: () {
-                  Navigator.push(
-                      context, MaterialPageRoute(builder: (_) => AddConta()));
-                },
-                icon: const Icon(Icons.add))
-          ],
-        ),
+            shadowColor: Colors.black,
+            backgroundColor: const Color.fromARGB(255, 250, 250, 92),
+            toolbarHeight: 100,
+            centerTitle: true,
+            title: Text(
+              "Saldo " + _resultado.toString(),
+              style: const TextStyle(fontSize: 27),
+            )),
         floatingActionButton: Padding(
           padding: const EdgeInsets.only(left: 30, bottom: 20),
           child: Row(
@@ -82,25 +106,61 @@ class _ContasState extends State<Contas> {
               FloatingActionButton(
                 onPressed: () {
                   showModalBottomSheet(
+                      isScrollControlled: true,
                       context: context,
                       builder: (_) {
                         return Container(
-                          padding: const EdgeInsets.all(30),
-                          height: MediaQuery.sizeOf(context).height / 2.4,
-                          child: Column(children: [
-                            TextFormField(
-                              decoration: const InputDecoration(
-                                  labelText: "Remover Saldo",
-                                  floatingLabelAlignment:
-                                      FloatingLabelAlignment.center,
-                                  border: OutlineInputBorder()),
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.center,
-                            ),
-                            ElevatedButton(
-                                onPressed: () {}, child: const Text("remover"))
-                          ]),
-                        );
+                            height: MediaQuery.of(context).size.height * 0.8,
+                            child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Form(
+                                  child: Column(children: [
+                                    const Text(
+                                      "Remover Saldo",
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                      ),
+                                    ),
+                                    const SizedBox(
+                                      height: 15,
+                                    ),
+                                    TextFormField(
+                                      controller: _desc_conta,
+                                      decoration: const InputDecoration(
+                                          labelText: "Descrição",
+                                          border: OutlineInputBorder()),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(
+                                      height: 15,
+                                    ),
+                                    TextFormField(
+                                      controller: _valor_conta,
+                                      decoration: const InputDecoration(
+                                          labelText: "Digite o valor",
+                                          floatingLabelAlignment:
+                                              FloatingLabelAlignment.center,
+                                          border: OutlineInputBorder()),
+                                      keyboardType: TextInputType.number,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(
+                                      height: 15,
+                                    ),
+                                    ElevatedButton(
+                                        style: ButtonStyle(
+                                            backgroundColor:
+                                                MaterialStateProperty.all(
+                                                    Colors.white)),
+                                        onPressed: () {
+                                          _adicionarConta();
+                                          Navigator.pop(context);
+                                        },
+                                        child: const Text(
+                                          "remover",
+                                        ))
+                                  ]),
+                                )));
                       });
                 },
                 child: const Icon(Icons.remove),
@@ -109,21 +169,61 @@ class _ContasState extends State<Contas> {
               FloatingActionButton(
                 onPressed: () {
                   showModalBottomSheet(
+                      isScrollControlled: true,
                       context: context,
                       builder: (_) {
                         return Container(
-                          padding: const EdgeInsets.all(30),
-                          height: MediaQuery.sizeOf(context).height / 2.4,
-                          child: TextFormField(
-                            decoration: const InputDecoration(
-                                labelText: "Adicionar Saldo",
-                                floatingLabelAlignment:
-                                    FloatingLabelAlignment.center,
-                                border: OutlineInputBorder()),
-                            keyboardType: TextInputType.number,
-                            textAlign: TextAlign.center,
-                          ),
-                        );
+                            height: MediaQuery.of(context).size.height * 0.8,
+                            child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Form(
+                                  child: Column(children: [
+                                    const Text(
+                                      "Adicionar Saldo",
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                      ),
+                                    ),
+                                    const SizedBox(
+                                      height: 15,
+                                    ),
+                                    TextFormField(
+                                      controller: _desc_conta,
+                                      decoration: const InputDecoration(
+                                          labelText: "Descrição",
+                                          border: OutlineInputBorder()),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(
+                                      height: 15,
+                                    ),
+                                    TextFormField(
+                                      controller: _valor_conta,
+                                      decoration: const InputDecoration(
+                                          labelText: "Digite o valor",
+                                          floatingLabelAlignment:
+                                              FloatingLabelAlignment.center,
+                                          border: OutlineInputBorder()),
+                                      keyboardType: TextInputType.number,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(
+                                      height: 15,
+                                    ),
+                                    ElevatedButton(
+                                        style: ButtonStyle(
+                                            backgroundColor:
+                                                MaterialStateProperty.all(
+                                                    Colors.white)),
+                                        onPressed: () {
+                                          _adicionarSaldo();
+                                          Navigator.pop(context);
+                                        },
+                                        child: const Text(
+                                          "adicionar",
+                                        ))
+                                  ]),
+                                )));
                       });
                 },
                 child: const Icon(Icons.add),
@@ -132,6 +232,13 @@ class _ContasState extends State<Contas> {
           ),
         ),
         body: Column(children: [
+          const SizedBox(
+            height: 10,
+          ),
+          const Text(
+            "Extrato",
+            style: TextStyle(fontSize: 20),
+          ),
           ListView.builder(
               shrinkWrap: true,
               itemCount: _allData.length,
@@ -151,14 +258,7 @@ class _ContasState extends State<Contas> {
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        IconButton(
-                            onPressed: () {
-                              _deleteData(_allData[index]['id']);
-                            },
-                            icon: const Icon(
-                              Icons.check,
-                              color: Colors.green,
-                            ))
+                        Text(_allData[index]['dataPaga']),
                       ],
                     ),
                   ))),
