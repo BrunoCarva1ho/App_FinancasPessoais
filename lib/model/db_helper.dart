@@ -10,6 +10,14 @@ class SQLHelper {
         createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
       """);
+
+    await database.execute("""
+      CREATE TABLE user(
+        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        saldo TEXT,
+        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+      """);
   }
 
   static Future<sql.Database> db() async {
@@ -32,9 +40,34 @@ class SQLHelper {
         conflictAlgorithm: sql.ConflictAlgorithm.replace);
   }
 
+  static Future<void> adicionarRecebimento(
+      String descConta, String valor, String dataPaga, String saldo) async {
+    final db = await SQLHelper.db();
+
+    final user = {
+      "saldo": saldo,
+    };
+
+    final data = {
+      "desc_conta": descConta,
+      "valor": valor,
+    };
+
+    await db.insert('data', data,
+        conflictAlgorithm: sql.ConflictAlgorithm.replace);
+
+    await db.insert('user', user,
+        conflictAlgorithm: sql.ConflictAlgorithm.replace);
+  }
+
   static Future<List<Map<String, dynamic>>> getAllData() async {
     final db = await SQLHelper.db();
     return db.query('data', orderBy: 'id');
+  }
+
+  static Future<List<Map<String, dynamic>>> getAllUser() async {
+    final db = await SQLHelper.db();
+    return db.query('user', orderBy: 'id');
   }
 
   static Future<void> deleteData(int id) async {

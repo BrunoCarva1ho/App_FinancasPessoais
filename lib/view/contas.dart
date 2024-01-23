@@ -1,7 +1,6 @@
 // ignore_for_file: non_constant_identifier_names, use_build_context_synchronously
 
 //import 'package:app_dev_agil/view/add_conta.dart';
-import 'package:app_dev_agil/model/db_user.dart';
 import 'package:flutter/material.dart';
 //import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import '../model/db_helper.dart';
@@ -16,7 +15,6 @@ class Contas extends StatefulWidget {
 
 class _ContasState extends State<Contas> {
   List<Map<String, dynamic>> _allData = [];
-  List<Map<String, dynamic>> _user = [];
   bool _isLoading = true;
   bool atualizou = false;
 
@@ -24,8 +22,10 @@ class _ContasState extends State<Contas> {
   //Pega todos os dados do banco
   void _refreshData() async {
     final data = await SQLHelper.getAllData();
+    final saldo = await SQLHelper.getAllUser();
     setState(() {
       _allData = data;
+      _resultado = saldo[0]['saldo'];
       _isLoading = false;
     });
   }
@@ -46,7 +46,14 @@ class _ContasState extends State<Contas> {
     _refreshData();
   }
 
-  void _adicionarRecebimento() async {}
+  void _adicionarRecebimento() async {
+    var saldo1 = await SQLHelper.getAllUser();
+    var saldo = _valor_conta.text;
+
+    await SQLHelper.adicionarRecebimento(
+        _desc_conta.text, _valor_conta.text, DateTime.now().toString(), saldo);
+    _refreshData();
+  }
 
   // void _adicionarSaldo() async {
   //   print('tam ' + _allData.length.toString());
@@ -87,7 +94,7 @@ class _ContasState extends State<Contas> {
           toolbarHeight: 100,
           centerTitle: true,
           title: Text(
-            "Saldo " + _resultado.toString(),
+            "Saldo: $_resultado",
             style: const TextStyle(fontSize: 27),
           )),
       floatingActionButton: Padding(
@@ -209,7 +216,7 @@ class _ContasState extends State<Contas> {
                                                   Colors.white)),
                                       onPressed: () {
                                         //_adicionarSaldo();
-                                        _adicionarPagamento();
+                                        _adicionarRecebimento();
                                         Navigator.pop(context);
                                       },
                                       child: const Text(
