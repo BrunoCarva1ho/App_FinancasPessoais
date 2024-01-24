@@ -90,7 +90,7 @@ class _ContasState extends State<Contas> {
         toolbarHeight: 100,
         centerTitle: true,
         title: Text(
-          "Saldo: $_resultado",
+          "Saldo: R\$ $_resultado",
           style: const TextStyle(fontSize: 27),
         ),
         actions: <Widget>[
@@ -248,7 +248,8 @@ class _ContasState extends State<Contas> {
                     style: const TextStyle(fontSize: 22),
                   ),
                 ),
-                subtitle: Text(_allData[index]['valor'],
+                // ignore: prefer_interpolation_to_compose_strings
+                subtitle: Text("R\$ " + _allData[index]['valor'],
                     style: const TextStyle(fontSize: 15)),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
