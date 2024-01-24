@@ -74,27 +74,6 @@ class _ContasState extends State<Contas> {
     _refreshData();
   }
 
-  // void _adicionarSaldo() async {
-  //   print('tam ' + _allData.length.toString());
-
-  //   if (_allData.isEmpty) {
-  //     await SQLHelper.criarSaldo(_valor_conta.text);
-  //     await SQLHelper.adicionarSaldo(
-  //         _desc_conta.text, _valor_conta.text, _valor_conta.text);
-  //     _refreshData();
-  //     print("criou o db");
-  //     return;
-  //   } else {
-  //     double saldoAtual = 0.0;
-  //     saldoAtual = double.parse(_allData[0]['saldo'].toString()) +
-  //         double.parse(_valor_conta.text);
-  //     await SQLHelper.adicionarSaldo(
-  //         _desc_conta.text, _valor_conta.text, saldoAtual.toString());
-  //     _refreshData();
-  //     return;
-  //   }
-  // }
-
   void _deleteData(int id) async {
     await SQLHelper.deleteData(id);
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -104,8 +83,6 @@ class _ContasState extends State<Contas> {
 
   @override
   Widget build(BuildContext context) {
-    //_refreshData();
-
     return Scaffold(
       appBar: AppBar(
         shadowColor: Colors.black,
