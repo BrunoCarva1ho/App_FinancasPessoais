@@ -23,11 +23,12 @@ class _ContasState extends State<Contas> {
   void _refreshData() async {
     final data = await SQLHelper.getAllData();
     final saldo = await SQLHelper.getAllUser();
+
+    _allData = data;
+    if (saldo.isNotEmpty) {
+      _resultado = saldo[saldo.length - 1]['saldo'];
+    }
     setState(() {
-      _allData = data;
-      if (saldo[0]['saldo'] != "") {
-        _resultado = saldo[saldo.length - 1]['saldo'];
-      }
       _isLoading = false;
     });
   }
@@ -107,14 +108,18 @@ class _ContasState extends State<Contas> {
 
     return Scaffold(
       appBar: AppBar(
-          shadowColor: Colors.black,
-          backgroundColor: const Color.fromARGB(255, 250, 250, 92),
-          toolbarHeight: 100,
-          centerTitle: true,
-          title: Text(
-            "Saldo: $_resultado",
-            style: const TextStyle(fontSize: 27),
-          )),
+        shadowColor: Colors.black,
+        backgroundColor: const Color.fromARGB(255, 250, 250, 92),
+        toolbarHeight: 100,
+        centerTitle: true,
+        title: Text(
+          "Saldo: $_resultado",
+          style: const TextStyle(fontSize: 27),
+        ),
+        actions: <Widget>[
+          IconButton(onPressed: () {}, icon: const Icon(Icons.wallet_rounded))
+        ],
+      ),
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(left: 30, bottom: 20),
         child: Row(
@@ -256,18 +261,25 @@ class _ContasState extends State<Contas> {
           itemBuilder: (context, index) => Card(
               margin: const EdgeInsets.all(15),
               child: ListTile(
+                textColor: (_allData[index]['tipo'] == 'pagamento')
+                    ? Color.fromARGB(255, 196, 54, 44)
+                    : Color.fromARGB(255, 67, 116, 69),
                 title: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 5),
                   child: Text(
                     _allData[index]['desc_conta'],
-                    style: const TextStyle(fontSize: 20),
+                    style: const TextStyle(fontSize: 22),
                   ),
                 ),
-                subtitle: Text(_allData[index]['valor']),
+                subtitle: Text(_allData[index]['valor'],
+                    style: const TextStyle(fontSize: 15)),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(_allData[index]['createdAt']),
+                    Text(
+                      _allData[index]['createdAt'],
+                      style: const TextStyle(fontSize: 15),
+                    ),
                   ],
                 ),
               ))),

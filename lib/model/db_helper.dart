@@ -7,6 +7,7 @@ class SQLHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         desc_conta TEXT,
         valor TEXT,
+        tipo TEXT,
         createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
       """);
@@ -35,14 +36,11 @@ class SQLHelper {
       "saldo": saldo,
     };
 
-    final data = {
-      "desc_conta": descConta,
-      "valor": valor,
-    };
+    final data = {"desc_conta": descConta, "valor": valor, "tipo": "pagamento"};
 
     await db.insert('data', data,
         conflictAlgorithm: sql.ConflictAlgorithm.replace);
-    await db.update('user', user,
+    await db.insert('user', user,
         conflictAlgorithm: sql.ConflictAlgorithm.replace);
   }
 
@@ -57,12 +55,13 @@ class SQLHelper {
     final data = {
       "desc_conta": descConta,
       "valor": valor,
+      "tipo": "recebimento"
     };
 
     await db.insert('data', data,
         conflictAlgorithm: sql.ConflictAlgorithm.replace);
 
-    await db.update('user', user,
+    await db.insert('user', user,
         conflictAlgorithm: sql.ConflictAlgorithm.replace);
   }
 
