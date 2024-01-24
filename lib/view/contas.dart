@@ -24,11 +24,11 @@ class _ContasState extends State<Contas> {
     final data = await SQLHelper.getAllData();
     final saldo = await SQLHelper.getAllUser();
 
-    _allData = data;
-    if (saldo.isNotEmpty) {
-      _resultado = saldo[saldo.length - 1]['saldo'];
-    }
     setState(() {
+      _allData = data;
+      if (saldo.isNotEmpty) {
+        _resultado = saldo[saldo.length - 1]['saldo'];
+      }
       _isLoading = false;
     });
   }
@@ -41,34 +41,24 @@ class _ContasState extends State<Contas> {
 
   final TextEditingController _desc_conta = TextEditingController();
   final TextEditingController _valor_conta = TextEditingController();
-  final TextEditingController _saldo = TextEditingController();
+  final TextEditingController _data_do_valor = TextEditingController();
 
   void _adicionarPagamento() async {
-    if (_resultado == "") {
-      var conta = 0 - double.parse(_valor_conta.text);
+    var conta = _resultado.toString();
 
-      await SQLHelper.adicionarPagamento(_desc_conta.text, _valor_conta.text,
-          DateTime.now().toString(), conta.toString());
-      _refreshData();
-      _desc_conta.text = '';
-      _valor_conta.text = '';
-    } else {
-      var conta = _resultado.toString();
-
-      final r = double.parse(conta) - double.parse(_valor_conta.text);
-      await SQLHelper.adicionarPagamento(_desc_conta.text, _valor_conta.text,
-          DateTime.now().toString(), r.toString());
-      _desc_conta.text = '';
-      _valor_conta.text = '';
-      _refreshData();
-    }
+    final r = double.parse(conta) - double.parse(_valor_conta.text);
+    await SQLHelper.adicionarPagamento(_desc_conta.text, _valor_conta.text,
+        DateTime.now().toString(), r.toString(), _data_do_valor.text);
+    _desc_conta.text = '';
+    _valor_conta.text = '';
+    _refreshData();
   }
 
   void _adicionarRecebimento() async {
     final saldo = double.parse(_resultado) + double.parse(_valor_conta.text);
 
     await SQLHelper.adicionarRecebimento(_desc_conta.text, _valor_conta.text,
-        DateTime.now().toString(), saldo.toString());
+        DateTime.now().toString(), saldo.toString(), _data_do_valor.text);
     _desc_conta.text = '';
     _valor_conta.text = '';
     _refreshData();
@@ -81,6 +71,42 @@ class _ContasState extends State<Contas> {
     _refreshData();
   }
 
+  Future<String> _showDatePicker() async {
+    String dataformatada = "";
+    await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      locale: const Locale('pt', 'BR'), // Define o idioma do DatePicker
+    ).then((value) {
+      dataformatada = "${value!.day}/${value.month}/${value.year}";
+
+      setState(() {
+        _data_do_valor.text = dataformatada;
+      });
+    });
+    return dataformatada.toString();
+  }
+
+  /*
+  String _dropdownConfig = 'Não Realizado';
+  var configs = ['Editar', 'Remover'];
+
+  Widget buildDropdownButton(List<String> variaveis, String dropdownValue) {
+    return DropdownButton<String>(
+        value: dropdownValue,
+        onChanged: (String? newValue) {
+          setState(() {
+            dropdownValue = newValue!;
+          });
+        },
+        items: variaveis.map((String item) {
+          return DropdownMenuItem(value: item, child: Text(item));
+        }).toList(),
+        borderRadius: BorderRadius.circular(10));
+  }
+  */
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -94,7 +120,7 @@ class _ContasState extends State<Contas> {
           style: const TextStyle(fontSize: 27),
         ),
         actions: <Widget>[
-          IconButton(onPressed: () {}, icon: const Icon(Icons.wallet_rounded))
+          IconButton(onPressed: () {}, icon: const Icon(Icons.wallet_rounded)),
         ],
       ),
       floatingActionButton: Padding(
@@ -129,6 +155,13 @@ class _ContasState extends State<Contas> {
                                         labelText: "Descrição",
                                         border: OutlineInputBorder()),
                                     textAlign: TextAlign.center,
+                                    validator: (text) {
+                                      if (_valor_conta.text == "") {
+                                        return "Informe uma descrição";
+                                      } else {
+                                        return null;
+                                      }
+                                    },
                                   ),
                                   const SizedBox(
                                     height: 15,
@@ -142,6 +175,13 @@ class _ContasState extends State<Contas> {
                                         border: OutlineInputBorder()),
                                     keyboardType: TextInputType.number,
                                     textAlign: TextAlign.center,
+                                    validator: (text) {
+                                      if (text == null) {
+                                        return "Informe o Valor";
+                                      } else {
+                                        return null;
+                                      }
+                                    },
                                   ),
                                   const SizedBox(
                                     height: 15,
@@ -152,8 +192,11 @@ class _ContasState extends State<Contas> {
                                               MaterialStateProperty.all(
                                                   Colors.white)),
                                       onPressed: () {
-                                        _adicionarPagamento();
-                                        Navigator.pop(context);
+                                        if (_valor_conta.text != "" &&
+                                            _desc_conta.text != "") {
+                                          _adicionarPagamento();
+                                          Navigator.pop(context);
+                                        }
                                       },
                                       child: const Text(
                                         "adicionar",
@@ -171,7 +214,7 @@ class _ContasState extends State<Contas> {
                     isScrollControlled: true,
                     context: context,
                     builder: (_) {
-                      return Container(
+                      return SizedBox(
                           height: MediaQuery.of(context).size.height * 0.8,
                           child: Padding(
                               padding: const EdgeInsets.all(20),
@@ -192,6 +235,13 @@ class _ContasState extends State<Contas> {
                                         labelText: "Descrição",
                                         border: OutlineInputBorder()),
                                     textAlign: TextAlign.center,
+                                    validator: (text) {
+                                      if (_valor_conta.text == "") {
+                                        return "Informe uma descrição";
+                                      } else {
+                                        return null;
+                                      }
+                                    },
                                   ),
                                   const SizedBox(
                                     height: 15,
@@ -205,10 +255,44 @@ class _ContasState extends State<Contas> {
                                         border: OutlineInputBorder()),
                                     keyboardType: TextInputType.number,
                                     textAlign: TextAlign.center,
+                                    validator: (text) {
+                                      if (_valor_conta.text == "") {
+                                        return "Informe o Valor";
+                                      } else {
+                                        return null;
+                                      }
+                                    },
                                   ),
                                   const SizedBox(
                                     height: 15,
                                   ),
+                                  /*MaterialButton(
+                                      onPressed: () async {
+                                        await showDatePicker(
+                                          context: context,
+                                          initialDate: DateTime.now(),
+                                          firstDate: DateTime(1900),
+                                          lastDate: DateTime.now(),
+                                          locale: const Locale('pt',
+                                              'BR'), // Define o idioma do DatePicker
+                                        ).then((value) {
+                                          final dataformatada =
+                                              "${value!.day}/${value.month}/${value.year}";
+
+                                          setState(() {
+                                            _data_do_valor.text = dataformatada;
+                                          });
+                                        });
+                                      },
+                                      padding: const EdgeInsets.all(20),
+                                      color: Colors.red,
+                                      child: Text(
+                                        _data_do_valor.text,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 15,
+                                        ),
+                                      )),*/
                                   ElevatedButton(
                                       style: ButtonStyle(
                                           backgroundColor:
@@ -216,8 +300,11 @@ class _ContasState extends State<Contas> {
                                                   Colors.white)),
                                       onPressed: () {
                                         //_adicionarSaldo();
-                                        _adicionarRecebimento();
-                                        Navigator.pop(context);
+                                        if (_valor_conta.text != "" &&
+                                            _desc_conta.text != "") {
+                                          _adicionarRecebimento();
+                                          Navigator.pop(context);
+                                        }
                                       },
                                       child: const Text(
                                         "adicionar",
@@ -239,25 +326,28 @@ class _ContasState extends State<Contas> {
               margin: const EdgeInsets.all(15),
               child: ListTile(
                 textColor: (_allData[index]['tipo'] == 'pagamento')
-                    ? Color.fromARGB(255, 196, 54, 44)
-                    : Color.fromARGB(255, 67, 116, 69),
+                    ? const Color.fromARGB(255, 196, 54, 44)
+                    : const Color.fromARGB(255, 67, 116, 69),
                 title: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 5),
                   child: Text(
                     _allData[index]['desc_conta'],
-                    style: const TextStyle(fontSize: 22),
+                    style: const TextStyle(fontSize: 20),
                   ),
                 ),
                 // ignore: prefer_interpolation_to_compose_strings
                 subtitle: Text("R\$ " + _allData[index]['valor'],
-                    style: const TextStyle(fontSize: 15)),
+                    style: const TextStyle(fontSize: 14)),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       _allData[index]['createdAt'],
-                      style: const TextStyle(fontSize: 15),
+                      style: const TextStyle(fontSize: 14),
                     ),
+                    IconButton(
+                        onPressed: () {},
+                        icon: const Icon(Icons.edit_note_sharp))
                   ],
                 ),
               ))),

@@ -8,6 +8,7 @@ class SQLHelper {
         desc_conta TEXT,
         valor TEXT,
         tipo TEXT,
+        data_do_valor TEXT,
         createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
       """);
@@ -22,30 +23,14 @@ class SQLHelper {
   }
 
   static Future<sql.Database> db() async {
-    return sql.openDatabase("database_name.db", version: 1,
+    return sql.openDatabase("financas.db", version: 1,
         onCreate: (sql.Database database, int version) async {
       await createTables(database);
     });
   }
 
-  static Future<void> adicionarPagamento(
-      String descConta, String valor, String dataPaga, String saldo) async {
-    final db = await SQLHelper.db();
-
-    final user = {
-      "saldo": saldo,
-    };
-
-    final data = {"desc_conta": descConta, "valor": valor, "tipo": "pagamento"};
-
-    await db.insert('data', data,
-        conflictAlgorithm: sql.ConflictAlgorithm.replace);
-    await db.insert('user', user,
-        conflictAlgorithm: sql.ConflictAlgorithm.replace);
-  }
-
-  static Future<void> adicionarRecebimento(
-      String descConta, String valor, String dataPaga, String saldo) async {
+  static Future<void> adicionarPagamento(String descConta, String valor,
+      String dataPaga, String saldo, String dataDoValor) async {
     final db = await SQLHelper.db();
 
     final user = {
@@ -55,7 +40,29 @@ class SQLHelper {
     final data = {
       "desc_conta": descConta,
       "valor": valor,
-      "tipo": "recebimento"
+      "tipo": "pagamento",
+      "data_do_valor": dataDoValor
+    };
+
+    await db.insert('data', data,
+        conflictAlgorithm: sql.ConflictAlgorithm.replace);
+    await db.insert('user', user,
+        conflictAlgorithm: sql.ConflictAlgorithm.replace);
+  }
+
+  static Future<void> adicionarRecebimento(String descConta, String valor,
+      String dataPaga, String saldo, String dataDoValor) async {
+    final db = await SQLHelper.db();
+
+    final user = {
+      "saldo": saldo,
+    };
+
+    final data = {
+      "desc_conta": descConta,
+      "valor": valor,
+      "tipo": "recebimento",
+      "data_do_valor": dataDoValor
     };
 
     await db.insert('data', data,
