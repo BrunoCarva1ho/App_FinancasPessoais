@@ -18,14 +18,16 @@ class _ContasState extends State<Contas> {
   bool _isLoading = true;
   bool atualizou = false;
 
-  var _resultado;
+  String _resultado = "0";
   //Pega todos os dados do banco
   void _refreshData() async {
     final data = await SQLHelper.getAllData();
     final saldo = await SQLHelper.getAllUser();
     setState(() {
       _allData = data;
-      _resultado = saldo[0]['saldo'];
+      if (saldo[0]['saldo'] != "") {
+        _resultado = saldo[saldo.length - 1]['saldo'];
+      }
       _isLoading = false;
     });
   }
@@ -38,20 +40,36 @@ class _ContasState extends State<Contas> {
 
   final TextEditingController _desc_conta = TextEditingController();
   final TextEditingController _valor_conta = TextEditingController();
-  //final TextEditingController _saldo = TextEditingController();
+  final TextEditingController _saldo = TextEditingController();
 
   void _adicionarPagamento() async {
-    await SQLHelper.adicionarPagamento(
-        _desc_conta.text, _valor_conta.text, DateTime.now().toString());
-    _refreshData();
+    if (_resultado == "") {
+      var conta = 0 - double.parse(_valor_conta.text);
+
+      await SQLHelper.adicionarPagamento(_desc_conta.text, _valor_conta.text,
+          DateTime.now().toString(), conta.toString());
+      _refreshData();
+      _desc_conta.text = '';
+      _valor_conta.text = '';
+    } else {
+      var conta = _resultado.toString();
+
+      final r = double.parse(conta) - double.parse(_valor_conta.text);
+      await SQLHelper.adicionarPagamento(_desc_conta.text, _valor_conta.text,
+          DateTime.now().toString(), r.toString());
+      _desc_conta.text = '';
+      _valor_conta.text = '';
+      _refreshData();
+    }
   }
 
   void _adicionarRecebimento() async {
-    var saldo1 = await SQLHelper.getAllUser();
-    var saldo = _valor_conta.text;
+    final saldo = double.parse(_resultado) + double.parse(_valor_conta.text);
 
-    await SQLHelper.adicionarRecebimento(
-        _desc_conta.text, _valor_conta.text, DateTime.now().toString(), saldo);
+    await SQLHelper.adicionarRecebimento(_desc_conta.text, _valor_conta.text,
+        DateTime.now().toString(), saldo.toString());
+    _desc_conta.text = '';
+    _valor_conta.text = '';
     _refreshData();
   }
 
@@ -115,7 +133,7 @@ class _ContasState extends State<Contas> {
                               child: Form(
                                 child: Column(children: [
                                   const Text(
-                                    "Remover Saldo",
+                                    "Adicionar Despesa",
                                     style: TextStyle(
                                       fontSize: 22,
                                     ),
@@ -156,7 +174,7 @@ class _ContasState extends State<Contas> {
                                         Navigator.pop(context);
                                       },
                                       child: const Text(
-                                        "remover",
+                                        "adicionar",
                                       ))
                                 ]),
                               )));
@@ -242,9 +260,7 @@ class _ContasState extends State<Contas> {
                   padding: const EdgeInsets.symmetric(vertical: 5),
                   child: Text(
                     _allData[index]['desc_conta'],
-                    style: const TextStyle(
-                      fontSize: 20,
-                    ),
+                    style: const TextStyle(fontSize: 20),
                   ),
                 ),
                 subtitle: Text(_allData[index]['valor']),

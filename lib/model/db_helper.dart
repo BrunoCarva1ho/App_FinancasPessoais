@@ -28,8 +28,12 @@ class SQLHelper {
   }
 
   static Future<void> adicionarPagamento(
-      String descConta, String valor, String dataPaga) async {
+      String descConta, String valor, String dataPaga, String saldo) async {
     final db = await SQLHelper.db();
+
+    final user = {
+      "saldo": saldo,
+    };
 
     final data = {
       "desc_conta": descConta,
@@ -37,6 +41,8 @@ class SQLHelper {
     };
 
     await db.insert('data', data,
+        conflictAlgorithm: sql.ConflictAlgorithm.replace);
+    await db.update('user', user,
         conflictAlgorithm: sql.ConflictAlgorithm.replace);
   }
 
@@ -56,7 +62,7 @@ class SQLHelper {
     await db.insert('data', data,
         conflictAlgorithm: sql.ConflictAlgorithm.replace);
 
-    await db.insert('user', user,
+    await db.update('user', user,
         conflictAlgorithm: sql.ConflictAlgorithm.replace);
   }
 
