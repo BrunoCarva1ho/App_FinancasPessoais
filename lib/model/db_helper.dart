@@ -8,6 +8,7 @@ class SQLHelper {
         desc_conta TEXT,
         valor TEXT,
         tipo TEXT,
+        metodo TEXT,
         data_do_valor TEXT,
         createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
@@ -30,7 +31,7 @@ class SQLHelper {
   }
 
   static Future<void> adicionarPagamento(String descConta, String valor,
-      String dataPaga, String saldo, String dataDoValor) async {
+      String dataPaga, String saldo, String dataDoValor, String metodo) async {
     final db = await SQLHelper.db();
 
     final user = {
@@ -41,6 +42,7 @@ class SQLHelper {
       "desc_conta": descConta,
       "valor": valor,
       "tipo": "pagamento",
+      "metodo": metodo,
       "data_do_valor": dataDoValor
     };
 
@@ -62,6 +64,7 @@ class SQLHelper {
       "desc_conta": descConta,
       "valor": valor,
       "tipo": "recebimento",
+      "metodo": "n",
       "data_do_valor": dataDoValor
     };
 

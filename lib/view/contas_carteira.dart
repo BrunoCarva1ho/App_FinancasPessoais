@@ -6,14 +6,14 @@ import 'package:flutter/material.dart';
 import '../model/db_helper.dart';
 //import 'add_saldo_modal.dart';
 
-class Contas extends StatefulWidget {
-  const Contas({super.key});
+class ContasCarteira extends StatefulWidget {
+  const ContasCarteira({super.key});
 
   @override
-  State<Contas> createState() => _ContasState();
+  State<ContasCarteira> createState() => _ContasCarteiraState();
 }
 
-class _ContasState extends State<Contas> {
+class _ContasCarteiraState extends State<ContasCarteira> {
   List<Map<String, dynamic>> _allData = [];
   bool _isLoading = true;
   bool atualizou = false;
@@ -47,8 +47,13 @@ class _ContasState extends State<Contas> {
     var conta = _resultado.toString();
 
     final r = double.parse(conta) - double.parse(_valor_conta.text);
-    await SQLHelper.adicionarPagamento(_desc_conta.text, _valor_conta.text,
-        DateTime.now().toString(), r.toString(), _data_do_valor.text);
+    await SQLHelper.adicionarPagamento(
+        _desc_conta.text,
+        _valor_conta.text,
+        DateTime.now().toString(),
+        r.toString(),
+        _data_do_valor.text,
+        _dropdownValueMetodo);
     _desc_conta.text = '';
     _valor_conta.text = '';
     _refreshData();
@@ -63,6 +68,9 @@ class _ContasState extends State<Contas> {
     _valor_conta.text = '';
     _refreshData();
   }
+
+  String _dropdownValueMetodo = "Dinheiro";
+  var metodo = ["Dinheiro", "Cartão de Débito"];
 
   void _deleteData(int id) async {
     await SQLHelper.deleteData(id);
@@ -185,6 +193,20 @@ class _ContasState extends State<Contas> {
                                   ),
                                   const SizedBox(
                                     height: 15,
+                                  ),
+                                  const Text("Método de pagamento"),
+                                  DropdownButton<String>(
+                                    items: metodo.map((String item) {
+                                      return DropdownMenuItem(
+                                          value: item, child: Text(item));
+                                    }).toList(),
+                                    onChanged: (String? newValue) {
+                                      setState(() {
+                                        _dropdownValueMetodo = newValue!;
+                                      });
+                                    },
+                                    value: _dropdownValueMetodo,
+                                    borderRadius: BorderRadius.circular(10),
                                   ),
                                   ElevatedButton(
                                       style: ButtonStyle(
@@ -342,7 +364,7 @@ class _ContasState extends State<Contas> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _allData[index]['createdAt'],
+                      _allData[index]['metodo'],
                       style: const TextStyle(fontSize: 14),
                     ),
                     IconButton(

@@ -1,4 +1,4 @@
-import 'package:app_dev_agil/view/contas.dart';
+import 'package:app_dev_agil/view/contas_carteira.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
             seedColor: const Color.fromARGB(255, 255, 244, 85)),
         useMaterial3: true,
       ),
-      home: const Contas(),
+      home: const ContasCarteira(),
     );
   }
 }
