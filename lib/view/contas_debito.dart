@@ -1,7 +1,9 @@
-// ignore_for_file: non_constant_identifier_names, use_build_context_synchronously
+// ignore_for_file: non_constant_identifier_names, use_build_context_synchronously, sized_box_for_whitespace
 
 //import 'package:app_dev_agil/view/add_conta.dart';
+import 'package:app_dev_agil/view/contas_carteira.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 //import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import '../model/db_helper.dart';
 //import 'add_saldo_modal.dart';
@@ -21,8 +23,8 @@ class _ContasDebitoState extends State<ContasDebito> {
   String _resultado = "0";
   //Pega todos os dados do banco
   void _refreshData() async {
-    final data = await SQLHelper.getAllData();
-    final saldo = await SQLHelper.getAllUser();
+    final data = await SQLHelper.getDebito();
+    final saldo = await SQLHelper.getSaldoDebito();
 
     setState(() {
       _allData = data;
@@ -53,7 +55,7 @@ class _ContasDebitoState extends State<ContasDebito> {
         DateTime.now().toString(),
         r.toString(),
         _data_do_valor.text,
-        _dropdownValueMetodo);
+        "Cartão de Débito");
     _desc_conta.text = '';
     _valor_conta.text = '';
     _refreshData();
@@ -62,15 +64,17 @@ class _ContasDebitoState extends State<ContasDebito> {
   void _adicionarRecebimento() async {
     final saldo = double.parse(_resultado) + double.parse(_valor_conta.text);
 
-    await SQLHelper.adicionarRecebimento(_desc_conta.text, _valor_conta.text,
-        DateTime.now().toString(), saldo.toString(), _data_do_valor.text);
+    await SQLHelper.adicionarRecebimento(
+        _desc_conta.text,
+        _valor_conta.text,
+        DateTime.now().toString(),
+        saldo.toString(),
+        _data_do_valor.text,
+        "Cartão de Débito");
     _desc_conta.text = '';
     _valor_conta.text = '';
     _refreshData();
   }
-
-  String _dropdownValueMetodo = "Dinheiro";
-  var metodo = ["Dinheiro", "Cartão de Débito"];
 
   void _deleteData(int id) async {
     await SQLHelper.deleteData(id);
@@ -97,6 +101,11 @@ class _ContasDebitoState extends State<ContasDebito> {
     return dataformatada.toString();
   }
 
+  String _formatarDinheiro(double valor) {
+    final formatoMoeda = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
+    return formatoMoeda.format(valor);
+  }
+
   /*
   String _dropdownConfig = 'Não Realizado';
   var configs = ['Editar', 'Remover'];
@@ -120,15 +129,23 @@ class _ContasDebitoState extends State<ContasDebito> {
     return Scaffold(
       appBar: AppBar(
         shadowColor: Colors.black,
-        backgroundColor: const Color.fromARGB(255, 250, 250, 92),
+        backgroundColor: Colors.blueAccent,
         toolbarHeight: 100,
-        centerTitle: true,
+        centerTitle: false,
         title: Text(
-          "Saldo: R\$ $_resultado",
-          style: const TextStyle(fontSize: 27),
+          "Saldo Débito: ${_formatarDinheiro(double.parse(_resultado))}",
+          style: const TextStyle(fontSize: 25, color: Colors.white),
         ),
         actions: <Widget>[
-          IconButton(onPressed: () {}, icon: const Icon(Icons.wallet_rounded)),
+          IconButton(
+            onPressed: () {
+              Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (_) => const ContasCarteira()));
+            },
+            icon: const Icon(Icons.wallet),
+            iconSize: 32,
+            color: Colors.white,
+          ),
         ],
       ),
       floatingActionButton: Padding(
@@ -137,6 +154,7 @@ class _ContasDebitoState extends State<ContasDebito> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             FloatingActionButton(
+              backgroundColor: Colors.red,
               onPressed: () {
                 showModalBottomSheet(
                     isScrollControlled: true,
@@ -145,11 +163,11 @@ class _ContasDebitoState extends State<ContasDebito> {
                       return Container(
                           height: MediaQuery.of(context).size.height * 0.8,
                           child: Padding(
-                              padding: const EdgeInsets.all(20),
+                              padding: const EdgeInsets.all(30),
                               child: Form(
                                 child: Column(children: [
                                   const Text(
-                                    "Adicionar Despesa",
+                                    "Adicionar Despesa para Débito",
                                     style: TextStyle(
                                       fontSize: 22,
                                     ),
@@ -194,25 +212,11 @@ class _ContasDebitoState extends State<ContasDebito> {
                                   const SizedBox(
                                     height: 15,
                                   ),
-                                  const Text("Método de pagamento"),
-                                  DropdownButton<String>(
-                                    items: metodo.map((String item) {
-                                      return DropdownMenuItem(
-                                          value: item, child: Text(item));
-                                    }).toList(),
-                                    onChanged: (String? newValue) {
-                                      setState(() {
-                                        _dropdownValueMetodo = newValue!;
-                                      });
-                                    },
-                                    value: _dropdownValueMetodo,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
                                   ElevatedButton(
                                       style: ButtonStyle(
                                           backgroundColor:
                                               MaterialStateProperty.all(
-                                                  Colors.white)),
+                                                  Colors.red)),
                                       onPressed: () {
                                         if (_valor_conta.text != "" &&
                                             _desc_conta.text != "") {
@@ -222,15 +226,21 @@ class _ContasDebitoState extends State<ContasDebito> {
                                       },
                                       child: const Text(
                                         "adicionar",
+                                        style: TextStyle(color: Colors.white),
                                       ))
                                 ]),
                               )));
                     });
               },
-              child: const Icon(Icons.remove),
+              child: const Icon(
+                Icons.remove,
+                size: 27,
+                color: Colors.white,
+              ),
             ),
             Expanded(child: Container()),
             FloatingActionButton(
+              backgroundColor: Colors.blueAccent,
               onPressed: () {
                 showModalBottomSheet(
                     isScrollControlled: true,
@@ -239,11 +249,11 @@ class _ContasDebitoState extends State<ContasDebito> {
                       return SizedBox(
                           height: MediaQuery.of(context).size.height * 0.8,
                           child: Padding(
-                              padding: const EdgeInsets.all(20),
+                              padding: const EdgeInsets.all(30),
                               child: Form(
                                 child: Column(children: [
                                   const Text(
-                                    "Adicionar Saldo",
+                                    "Adicionar Saldo para Débito",
                                     style: TextStyle(
                                       fontSize: 22,
                                     ),
@@ -319,7 +329,7 @@ class _ContasDebitoState extends State<ContasDebito> {
                                       style: ButtonStyle(
                                           backgroundColor:
                                               MaterialStateProperty.all(
-                                                  Colors.white)),
+                                                  Colors.blueAccent)),
                                       onPressed: () {
                                         //_adicionarSaldo();
                                         if (_valor_conta.text != "" &&
@@ -330,12 +340,17 @@ class _ContasDebitoState extends State<ContasDebito> {
                                       },
                                       child: const Text(
                                         "adicionar",
+                                        style: TextStyle(color: Colors.white),
                                       ))
                                 ]),
                               )));
                     });
               },
-              child: const Icon(Icons.add),
+              child: const Icon(
+                Icons.add,
+                size: 27,
+                color: Colors.white,
+              ),
             )
           ],
         ),
@@ -357,19 +372,17 @@ class _ContasDebitoState extends State<ContasDebito> {
                     style: const TextStyle(fontSize: 20),
                   ),
                 ),
-                // ignore: prefer_interpolation_to_compose_strings
-                subtitle: Text("R\$ " + _allData[index]['valor'],
+                subtitle: Text(
+                    _formatarDinheiro(double.parse(_allData[index]['valor'])),
                     style: const TextStyle(fontSize: 14)),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      _allData[index]['metodo'],
-                      style: const TextStyle(fontSize: 14),
-                    ),
                     IconButton(
-                        onPressed: () {},
-                        icon: const Icon(Icons.edit_note_sharp))
+                        onPressed: () {
+                          _deleteData(_allData[index]['id']);
+                        },
+                        icon: const Icon(Icons.delete))
                   ],
                 ),
               ))),

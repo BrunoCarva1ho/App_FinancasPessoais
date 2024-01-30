@@ -1,9 +1,11 @@
-// ignore_for_file: non_constant_identifier_names, use_build_context_synchronously
+// ignore_for_file: non_constant_identifier_names, use_build_context_synchronously, sized_box_for_whitespace
 
 //import 'package:app_dev_agil/view/add_conta.dart';
+import 'package:app_dev_agil/view/contas_debito.dart';
 import 'package:flutter/material.dart';
 //import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import '../model/db_helper.dart';
+import 'package:intl/intl.dart';
 //import 'add_saldo_modal.dart';
 
 class ContasCarteira extends StatefulWidget {
@@ -15,21 +17,21 @@ class ContasCarteira extends StatefulWidget {
 
 class _ContasCarteiraState extends State<ContasCarteira> {
   List<Map<String, dynamic>> _allData = [];
-  bool _isLoading = true;
+  //bool _isLoading = true;
   bool atualizou = false;
 
   String _resultado = "0";
   //Pega todos os dados do banco
   void _refreshData() async {
-    final data = await SQLHelper.getAllData();
-    final saldo = await SQLHelper.getAllUser();
+    final data = await SQLHelper.getCarteira();
+    final saldo = await SQLHelper.getSaldoCarteira();
 
     setState(() {
       _allData = data;
       if (saldo.isNotEmpty) {
         _resultado = saldo[saldo.length - 1]['saldo'];
       }
-      _isLoading = false;
+      //_isLoading = false;
     });
   }
 
@@ -53,7 +55,7 @@ class _ContasCarteiraState extends State<ContasCarteira> {
         DateTime.now().toString(),
         r.toString(),
         _data_do_valor.text,
-        _dropdownValueMetodo);
+        "Dinheiro");
     _desc_conta.text = '';
     _valor_conta.text = '';
     _refreshData();
@@ -62,20 +64,22 @@ class _ContasCarteiraState extends State<ContasCarteira> {
   void _adicionarRecebimento() async {
     final saldo = double.parse(_resultado) + double.parse(_valor_conta.text);
 
-    await SQLHelper.adicionarRecebimento(_desc_conta.text, _valor_conta.text,
-        DateTime.now().toString(), saldo.toString(), _data_do_valor.text);
+    await SQLHelper.adicionarRecebimento(
+        _desc_conta.text,
+        _valor_conta.text,
+        DateTime.now().toString(),
+        saldo.toString(),
+        _data_do_valor.text,
+        "Dinheiro");
     _desc_conta.text = '';
     _valor_conta.text = '';
     _refreshData();
   }
 
-  String _dropdownValueMetodo = "Dinheiro";
-  var metodo = ["Dinheiro", "Cartão de Débito"];
-
   void _deleteData(int id) async {
     await SQLHelper.deleteData(id);
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        backgroundColor: Colors.green, content: Text("Conta paga! (imagino)")));
+        backgroundColor: Colors.brown, content: Text("Conta paga! (imagino)")));
     _refreshData();
   }
 
@@ -95,6 +99,11 @@ class _ContasCarteiraState extends State<ContasCarteira> {
       });
     });
     return dataformatada.toString();
+  }
+
+  String _formatarDinheiro(double valor) {
+    final formatoMoeda = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
+    return formatoMoeda.format(valor);
   }
 
   /*
@@ -120,15 +129,25 @@ class _ContasCarteiraState extends State<ContasCarteira> {
     return Scaffold(
       appBar: AppBar(
         shadowColor: Colors.black,
-        backgroundColor: const Color.fromARGB(255, 250, 250, 92),
+        backgroundColor: Colors.green,
         toolbarHeight: 100,
-        centerTitle: true,
+        centerTitle: false,
         title: Text(
-          "Saldo: R\$ $_resultado",
-          style: const TextStyle(fontSize: 27),
+          "Saldo Carteira: ${_formatarDinheiro(double.parse(_resultado))}",
+          style: const TextStyle(fontSize: 25, color: Colors.white),
         ),
         actions: <Widget>[
-          IconButton(onPressed: () {}, icon: const Icon(Icons.wallet_rounded)),
+          IconButton(
+            onPressed: () {
+              Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (_) => const ContasDebito()));
+            },
+            icon: const Icon(
+              Icons.credit_card_sharp,
+              color: Colors.white,
+            ),
+            iconSize: 32,
+          ),
         ],
       ),
       floatingActionButton: Padding(
@@ -137,6 +156,7 @@ class _ContasCarteiraState extends State<ContasCarteira> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             FloatingActionButton(
+              backgroundColor: Colors.red,
               onPressed: () {
                 showModalBottomSheet(
                     isScrollControlled: true,
@@ -145,11 +165,11 @@ class _ContasCarteiraState extends State<ContasCarteira> {
                       return Container(
                           height: MediaQuery.of(context).size.height * 0.8,
                           child: Padding(
-                              padding: const EdgeInsets.all(20),
+                              padding: const EdgeInsets.all(30),
                               child: Form(
                                 child: Column(children: [
                                   const Text(
-                                    "Adicionar Despesa",
+                                    "Adicionar Despesa para Carteira",
                                     style: TextStyle(
                                       fontSize: 22,
                                     ),
@@ -194,25 +214,11 @@ class _ContasCarteiraState extends State<ContasCarteira> {
                                   const SizedBox(
                                     height: 15,
                                   ),
-                                  const Text("Método de pagamento"),
-                                  DropdownButton<String>(
-                                    items: metodo.map((String item) {
-                                      return DropdownMenuItem(
-                                          value: item, child: Text(item));
-                                    }).toList(),
-                                    onChanged: (String? newValue) {
-                                      setState(() {
-                                        _dropdownValueMetodo = newValue!;
-                                      });
-                                    },
-                                    value: _dropdownValueMetodo,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
                                   ElevatedButton(
                                       style: ButtonStyle(
                                           backgroundColor:
                                               MaterialStateProperty.all(
-                                                  Colors.white)),
+                                                  Colors.red)),
                                       onPressed: () {
                                         if (_valor_conta.text != "" &&
                                             _desc_conta.text != "") {
@@ -222,15 +228,21 @@ class _ContasCarteiraState extends State<ContasCarteira> {
                                       },
                                       child: const Text(
                                         "adicionar",
+                                        style: TextStyle(color: Colors.white),
                                       ))
                                 ]),
                               )));
                     });
               },
-              child: const Icon(Icons.remove),
+              child: const Icon(
+                Icons.remove,
+                color: Colors.white,
+                size: 27,
+              ),
             ),
             Expanded(child: Container()),
             FloatingActionButton(
+              backgroundColor: Colors.green,
               onPressed: () {
                 showModalBottomSheet(
                     isScrollControlled: true,
@@ -239,11 +251,11 @@ class _ContasCarteiraState extends State<ContasCarteira> {
                       return SizedBox(
                           height: MediaQuery.of(context).size.height * 0.8,
                           child: Padding(
-                              padding: const EdgeInsets.all(20),
+                              padding: const EdgeInsets.all(30),
                               child: Form(
                                 child: Column(children: [
                                   const Text(
-                                    "Adicionar Saldo",
+                                    "Adicionar Saldo para Carteira",
                                     style: TextStyle(
                                       fontSize: 22,
                                     ),
@@ -319,7 +331,7 @@ class _ContasCarteiraState extends State<ContasCarteira> {
                                       style: ButtonStyle(
                                           backgroundColor:
                                               MaterialStateProperty.all(
-                                                  Colors.white)),
+                                                  Colors.green)),
                                       onPressed: () {
                                         //_adicionarSaldo();
                                         if (_valor_conta.text != "" &&
@@ -330,12 +342,17 @@ class _ContasCarteiraState extends State<ContasCarteira> {
                                       },
                                       child: const Text(
                                         "adicionar",
+                                        style: TextStyle(color: Colors.white),
                                       ))
                                 ]),
                               )));
                     });
               },
-              child: const Icon(Icons.add),
+              child: const Icon(
+                Icons.add,
+                color: Colors.white,
+                size: 27,
+              ),
             )
           ],
         ),
@@ -363,13 +380,11 @@ class _ContasCarteiraState extends State<ContasCarteira> {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      _allData[index]['metodo'],
-                      style: const TextStyle(fontSize: 14),
-                    ),
                     IconButton(
-                        onPressed: () {},
-                        icon: const Icon(Icons.edit_note_sharp))
+                        onPressed: () {
+                          _deleteData(_allData[index]['id']);
+                        },
+                        icon: const Icon(Icons.delete))
                   ],
                 ),
               ))),
