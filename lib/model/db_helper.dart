@@ -13,46 +13,18 @@ class SQLHelper {
         createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
       """);
-
-    await database.execute("""
-      CREATE TABLE debito(
-        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-        saldo TEXT,
-        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-      )
-      """);
-
-    await database.execute("""
-      CREATE TABLE carteira(
-        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-        saldo TEXT,
-        createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-      )
-      """);
   }
 
   static Future<sql.Database> db() async {
-    return sql.openDatabase("financas.db", version: 1,
+    return sql.openDatabase("dados.db", version: 1,
         onCreate: (sql.Database database, int version) async {
       await createTables(database);
     });
   }
 
   static Future<void> adicionarPagamento(String descConta, String valor,
-      String dataPaga, String saldo, String dataDoValor, String metodo) async {
+      String dataPaga, String dataDoValor, String metodo) async {
     final db = await SQLHelper.db();
-
-    final valorSaldo = {
-      "saldo": saldo,
-    };
-
-    if (metodo == "Dinheiro") {
-      await db.insert('carteira', valorSaldo,
-          conflictAlgorithm: sql.ConflictAlgorithm.replace);
-    } else {
-      await db.insert('debito', valorSaldo,
-          conflictAlgorithm: sql.ConflictAlgorithm.replace);
-    }
 
     final data = {
       "desc_conta": descConta,
@@ -67,20 +39,8 @@ class SQLHelper {
   }
 
   static Future<void> adicionarRecebimento(String descConta, String valor,
-      String dataPaga, String saldo, String dataDoValor, String metodo) async {
+      String dataPaga, String dataDoValor, String metodo) async {
     final db = await SQLHelper.db();
-
-    final valorSaldo = {
-      "saldo": saldo,
-    };
-
-    if (metodo == "Dinheiro") {
-      await db.insert('carteira', valorSaldo,
-          conflictAlgorithm: sql.ConflictAlgorithm.replace);
-    } else {
-      await db.insert('debito', valorSaldo,
-          conflictAlgorithm: sql.ConflictAlgorithm.replace);
-    }
 
     final data = {
       "desc_conta": descConta,
@@ -108,14 +68,17 @@ class SQLHelper {
         where: 'metodo LIKE ?', whereArgs: ['Dinheiro'], orderBy: 'id DESC');
   }
 
-  static Future<List<Map<String, dynamic>>> getSaldoDebito() async {
+  static Future<void> editData(
+      int id, String descConta, String valor, String data) async {
     final db = await SQLHelper.db();
-    return db.query('debito', orderBy: 'id');
-  }
-
-  static Future<List<Map<String, dynamic>>> getSaldoCarteira() async {
-    final db = await SQLHelper.db();
-    return db.query('carteira', orderBy: 'id');
+    final newData = {
+      "desc_conta": descConta,
+      "valor": valor,
+      "data_do_valor": data
+    };
+    try {
+      await db.update('data', newData, where: "id = ?", whereArgs: [id]);
+    } catch (e) {}
   }
 
   static Future<void> deleteData(int id) async {

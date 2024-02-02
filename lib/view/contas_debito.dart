@@ -4,9 +4,8 @@
 import 'package:app_dev_agil/view/contas_carteira.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-//import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
+import 'package:flutter_holo_date_picker/flutter_holo_date_picker.dart';
 import '../model/db_helper.dart';
-//import 'add_saldo_modal.dart';
 
 class ContasDebito extends StatefulWidget {
   const ContasDebito({super.key});
@@ -17,22 +16,24 @@ class ContasDebito extends StatefulWidget {
 
 class _ContasDebitoState extends State<ContasDebito> {
   List<Map<String, dynamic>> _allData = [];
-  bool _isLoading = true;
   bool atualizou = false;
 
-  String _resultado = "0";
-  //Pega todos os dados do banco
+  int tamanho = 0;
+  double conta = 0;
   void _refreshData() async {
     final data = await SQLHelper.getDebito();
-    final saldo = await SQLHelper.getSaldoDebito();
+    conta = 0;
 
     setState(() {
       _allData = data;
-      if (saldo.isNotEmpty) {
-        _resultado = saldo[saldo.length - 1]['saldo'];
-      }
-      _isLoading = false;
     });
+    for (int i = 0; i < _allData.length; i++) {
+      if (_allData[i]['tipo'] == 'recebimento') {
+        conta = conta + double.parse(_allData[i]['valor']);
+      } else {
+        conta = conta - double.parse(_allData[i]['valor']);
+      }
+    }
   }
 
   @override
@@ -45,32 +46,21 @@ class _ContasDebitoState extends State<ContasDebito> {
   final TextEditingController _valor_conta = TextEditingController();
   final TextEditingController _data_do_valor = TextEditingController();
 
-  void _adicionarPagamento() async {
-    var conta = _resultado.toString();
+  final TextEditingController _edit_desc_conta = TextEditingController();
+  final TextEditingController _edit_valor_conta = TextEditingController();
+  final TextEditingController _edit_data_do_valor = TextEditingController();
 
-    final r = double.parse(conta) - double.parse(_valor_conta.text);
-    await SQLHelper.adicionarPagamento(
-        _desc_conta.text,
-        _valor_conta.text,
-        DateTime.now().toString(),
-        r.toString(),
-        _data_do_valor.text,
-        "Cartão de Débito");
+  void _adicionarPagamento() async {
+    await SQLHelper.adicionarPagamento(_desc_conta.text, _valor_conta.text,
+        DateTime.now().toString(), _data_do_valor.text, "Cartão de Débito");
     _desc_conta.text = '';
     _valor_conta.text = '';
     _refreshData();
   }
 
   void _adicionarRecebimento() async {
-    final saldo = double.parse(_resultado) + double.parse(_valor_conta.text);
-
-    await SQLHelper.adicionarRecebimento(
-        _desc_conta.text,
-        _valor_conta.text,
-        DateTime.now().toString(),
-        saldo.toString(),
-        _data_do_valor.text,
-        "Cartão de Débito");
+    await SQLHelper.adicionarRecebimento(_desc_conta.text, _valor_conta.text,
+        DateTime.now().toString(), _data_do_valor.text, "Cartão de Débito");
     _desc_conta.text = '';
     _valor_conta.text = '';
     _refreshData();
@@ -79,26 +69,17 @@ class _ContasDebitoState extends State<ContasDebito> {
   void _deleteData(int id) async {
     await SQLHelper.deleteData(id);
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        backgroundColor: Colors.green, content: Text("Conta paga! (imagino)")));
+        backgroundColor: Color.fromARGB(255, 255, 47, 47),
+        content: Text("Item deletado!")));
     _refreshData();
   }
 
-  Future<String> _showDatePicker() async {
-    String dataformatada = "";
-    await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-      locale: const Locale('pt', 'BR'), // Define o idioma do DatePicker
-    ).then((value) {
-      dataformatada = "${value!.day}/${value.month}/${value.year}";
-
-      setState(() {
-        _data_do_valor.text = dataformatada;
-      });
-    });
-    return dataformatada.toString();
+  void _editDebito(int id) async {
+    await SQLHelper.editData(id, _edit_desc_conta.text, _edit_valor_conta.text,
+        _edit_data_do_valor.text);
+    _refreshData();
+    _valor_conta.text = '';
+    _desc_conta.text = '';
   }
 
   String _formatarDinheiro(double valor) {
@@ -106,35 +87,45 @@ class _ContasDebitoState extends State<ContasDebito> {
     return formatoMoeda.format(valor);
   }
 
-  /*
-  String _dropdownConfig = 'Não Realizado';
-  var configs = ['Editar', 'Remover'];
-
-  Widget buildDropdownButton(List<String> variaveis, String dropdownValue) {
-    return DropdownButton<String>(
-        value: dropdownValue,
-        onChanged: (String? newValue) {
-          setState(() {
-            dropdownValue = newValue!;
-          });
-        },
-        items: variaveis.map((String item) {
-          return DropdownMenuItem(value: item, child: Text(item));
-        }).toList(),
-        borderRadius: BorderRadius.circular(10));
+  void _mostrarDialogoDeConfirmacao(BuildContext context, int id) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color.fromARGB(255, 198, 225, 247),
+          title: const Text('Confirmar Exclusão'),
+          content: const Text('Tem certeza de que deseja excluir?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                _deleteData(id);
+                Navigator.of(context).pop();
+              },
+              child: const Text('Confirmar'),
+            ),
+          ],
+        );
+      },
+    );
   }
-  */
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        shadowColor: Colors.black,
         backgroundColor: Colors.blueAccent,
         toolbarHeight: 100,
         centerTitle: false,
         title: Text(
-          "Saldo Débito: ${_formatarDinheiro(double.parse(_resultado))}",
-          style: const TextStyle(fontSize: 25, color: Colors.white),
+          "Débito: ${_formatarDinheiro(conta)}",
+          style: const TextStyle(
+              fontSize: 29, color: Colors.white, fontFamily: 'NotoSans'),
         ),
         actions: <Widget>[
           IconButton(
@@ -210,7 +201,33 @@ class _ContasDebitoState extends State<ContasDebito> {
                                     },
                                   ),
                                   const SizedBox(
-                                    height: 15,
+                                    height: 10,
+                                  ),
+                                  ElevatedButton(
+                                    child: Text(_data_do_valor.text.isEmpty
+                                        ? "Selecione a Data"
+                                        : _data_do_valor.text),
+                                    onPressed: () async {
+                                      var datePicked =
+                                          await DatePicker.showSimpleDatePicker(
+                                        context,
+                                        initialDate: DateTime.now(),
+                                        firstDate: DateTime(2000),
+                                        lastDate: DateTime.now(),
+                                        titleText: "Selecione a data",
+                                        dateFormat: "dd-MMMM-yyyy",
+                                        locale: DateTimePickerLocale.pt_br,
+                                        looping: true,
+                                      );
+
+                                      setState(() {
+                                        _data_do_valor.text =
+                                            "${datePicked!.day}/${datePicked.month}/${datePicked.year}";
+                                      });
+                                    },
+                                  ),
+                                  const SizedBox(
+                                    height: 5,
                                   ),
                                   ElevatedButton(
                                       style: ButtonStyle(
@@ -296,35 +313,30 @@ class _ContasDebitoState extends State<ContasDebito> {
                                     },
                                   ),
                                   const SizedBox(
-                                    height: 15,
+                                    height: 10,
                                   ),
-                                  /*MaterialButton(
-                                      onPressed: () async {
-                                        await showDatePicker(
-                                          context: context,
-                                          initialDate: DateTime.now(),
-                                          firstDate: DateTime(1900),
-                                          lastDate: DateTime.now(),
-                                          locale: const Locale('pt',
-                                              'BR'), // Define o idioma do DatePicker
-                                        ).then((value) {
-                                          final dataformatada =
-                                              "${value!.day}/${value.month}/${value.year}";
+                                  ElevatedButton(
+                                    child: const Text("Selecione a Data"),
+                                    onPressed: () async {
+                                      var datePicked =
+                                          await DatePicker.showSimpleDatePicker(
+                                        context,
+                                        initialDate: DateTime.now(),
+                                        firstDate: DateTime(2000),
+                                        lastDate: DateTime.now(),
+                                        titleText: "Selecione a data",
+                                        dateFormat: "dd-MMMM-yyyy",
+                                        locale: DateTimePickerLocale.pt_br,
+                                        looping: true,
+                                      );
 
-                                          setState(() {
-                                            _data_do_valor.text = dataformatada;
-                                          });
-                                        });
-                                      },
-                                      padding: const EdgeInsets.all(20),
-                                      color: Colors.red,
-                                      child: Text(
-                                        _data_do_valor.text,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 15,
-                                        ),
-                                      )),*/
+                                      _data_do_valor.text =
+                                          "${datePicked!.day}/${datePicked.month}/${datePicked.year}";
+                                    },
+                                  ),
+                                  const SizedBox(
+                                    height: 5,
+                                  ),
                                   ElevatedButton(
                                       style: ButtonStyle(
                                           backgroundColor:
@@ -334,6 +346,10 @@ class _ContasDebitoState extends State<ContasDebito> {
                                         //_adicionarSaldo();
                                         if (_valor_conta.text != "" &&
                                             _desc_conta.text != "") {
+                                          if (_data_do_valor.text.isEmpty) {
+                                            _data_do_valor.text =
+                                                "${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}";
+                                          }
                                           _adicionarRecebimento();
                                           Navigator.pop(context);
                                         }
@@ -369,7 +385,7 @@ class _ContasDebitoState extends State<ContasDebito> {
                   padding: const EdgeInsets.symmetric(vertical: 5),
                   child: Text(
                     _allData[index]['desc_conta'],
-                    style: const TextStyle(fontSize: 20),
+                    style: const TextStyle(fontSize: 17),
                   ),
                 ),
                 subtitle: Text(
@@ -378,14 +394,112 @@ class _ContasDebitoState extends State<ContasDebito> {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    Text(_allData[index]['data_do_valor']),
                     IconButton(
                         onPressed: () {
-                          _deleteData(_allData[index]['id']);
+                          _edit_valor_conta.text = _allData[index]['valor'];
+                          _edit_desc_conta.text = _allData[index]['desc_conta'];
+                          _edit_data_do_valor.text =
+                              _allData[index]['data_do_valor'];
+                          _editarDebito(context, _allData[index]['id']);
+                        },
+                        icon: const Icon(Icons.edit)),
+                    IconButton(
+                        onPressed: () {
+                          _mostrarDialogoDeConfirmacao(
+                              context, _allData[index]['id']);
                         },
                         icon: const Icon(Icons.delete))
                   ],
                 ),
               ))),
+    );
+  }
+
+  void _editarDebito(BuildContext context, int id) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // Retorna o widget do conteúdo da tela modal
+        return AlertDialog(
+          backgroundColor: const Color.fromARGB(255, 198, 225, 247),
+          title: const Text('Editar Item do Débito'),
+          actions: [
+            TextFormField(
+              controller: _edit_desc_conta,
+              decoration: const InputDecoration(
+                  labelText: "Descrição",
+                  floatingLabelAlignment: FloatingLabelAlignment.center,
+                  border: OutlineInputBorder()),
+              textAlign: TextAlign.center,
+              validator: (text) {
+                if (_valor_conta.text == "") {
+                  return "Informe uma descrição";
+                } else {
+                  return null;
+                }
+              },
+            ),
+            const SizedBox(
+              height: 15,
+            ),
+            TextFormField(
+              controller: _edit_valor_conta,
+              decoration: const InputDecoration(
+                  labelText: "Digite o valor",
+                  floatingLabelAlignment: FloatingLabelAlignment.center,
+                  border: OutlineInputBorder()),
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              validator: (text) {
+                if (_valor_conta.text == "") {
+                  return "Informe o Valor";
+                } else {
+                  return null;
+                }
+              },
+            ),
+            ElevatedButton(
+              child: Text(_edit_data_do_valor.text),
+              onPressed: () async {
+                var datePicked = await DatePicker.showSimpleDatePicker(
+                  context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime.now(),
+                  titleText: "Selecione a data",
+                  dateFormat: "dd-MMMM-yyyy",
+                  locale: DateTimePickerLocale.pt_br,
+                  looping: true,
+                );
+
+                setState(() {
+                  _edit_data_do_valor.text =
+                      "${datePicked!.day}/${datePicked.month}/${datePicked.year}";
+                });
+              },
+            ),
+            const SizedBox(
+              height: 5,
+            ),
+            TextButton(
+              onPressed: () {
+                _editDebito(id);
+                Navigator.of(context).pop();
+              },
+              child: const Text('Salvar'),
+            ),
+            TextButton(
+              onPressed: () {
+                _valor_conta.text = '';
+                _desc_conta.text = '';
+                Navigator.of(context).pop();
+              },
+              child: const Text('Fechar'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
